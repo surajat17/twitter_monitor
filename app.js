@@ -1,4 +1,3 @@
-
 const express = require('express');
 const puppeteer = require('puppeteer');
 const mongoose = require('mongoose');
@@ -47,7 +46,6 @@ async function getRecentTweets(username) {
   return tweets;
 }
 
-
 // Define a route to get the latest tweets for all users
 app.get('/tweets', async (req, res) => {
   try {
@@ -56,8 +54,11 @@ app.get('/tweets', async (req, res) => {
     for (const username of usernames) {
       const recentTweets = await getRecentTweets(username);
       for (const tweet of recentTweets) {
-        tweets.push(tweet);
-        await Tweet.create(tweet); // Save the tweet to the database
+        const existingTweet = await Tweet.findOne({ text: tweet.text, username: tweet.username });
+        if (!existingTweet) {
+          tweets.push(tweet);
+          await Tweet.create(tweet); // Save the tweet to the database
+        }
       }
     }
     res.json(tweets);
@@ -78,15 +79,18 @@ app.get('/', async (req, res) => {
   }
 });
 
-// Schedule a job to fetch the latest tweets every 10 minutes
+// Schedule a job to fetch the latest tweets every 5 minutes
 cron.schedule('*/5 * * * *', async () => {
   try {
     const usernames = ['BeosinAlert', 'BlockSecTeam', 'AnciliaInc', 'peckshield', 'CertiKAlert'];
     for (const username of usernames) {
       const recentTweets = await getRecentTweets(username);
       for (const tweet of recentTweets) {
-        console.log(tweet);
-        await Tweet.create(tweet); // Save the tweet to the database
+        const existingTweet = await Tweet.findOne({ text: tweet.text, username: tweet.username });
+        if (!existingTweet) {
+          console.log(tweet);
+          await Tweet.create(tweet); // Save the tweet to the database
+        }
       }
     }
   } catch (error) {
